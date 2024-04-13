@@ -1,13 +1,18 @@
 import React from 'react'
 import Header from './Header'
 import { useState , useRef } from 'react';
-import { createUserWithEmailAndPassword , signInWithEmailAndPassword  } from "firebase/auth";
+import { createUserWithEmailAndPassword , signInWithEmailAndPassword , updateProfile  } from "firebase/auth";
 import { checkValidData } from '../utils/validate';
 import { auth } from '../utils/firebase';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { addUser } from '../utils/userSlice';
 
 const Login = () => {
         const [isSignInForm , setIsSignInForm] = useState(true);
         const [errorMessage,setErrorMessage] = useState(null);
+        const navigate = useNavigate();
+        const dispatch = useDispatch();
 
         const name = useRef(null);
         const email = useRef(null);
@@ -26,6 +31,18 @@ const Login = () => {
           .then((userCredential) => {
             // Signed up 
             const user = userCredential.user;
+            updateProfile(auth.currentUser, {
+              displayName: name?.current?.value, photoURL: "https://example.com/jane-q-user/profile.jpg"
+            }).then(() => {
+              // Profile updated!
+              const {uid,displayName,email} = user;
+              dispatch(addUser({uid,displayName,email}));
+               navigate("/browse");
+            }).catch((error) => {
+              // An error occurred
+             setErrorMessage(error.code + error.message);
+              
+            });
           })
           .catch((error) => {
             const errorCode = error.code;
@@ -40,12 +57,11 @@ const Login = () => {
             .then((userCredential) => {
               // Signed in 
               const user = userCredential.user;
+              navigate("/browse");
             })
             .catch((error) => {
               const errorCode = error.code;
               const errorMessage = error.message;
-              console.log(errorCode);
-              console.log(errorMessage);
               if(errorCode === "auth/invalid-credential")setErrorMessage("Invalid Credentials");
             });
           }
